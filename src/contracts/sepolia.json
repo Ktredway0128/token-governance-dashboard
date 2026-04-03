@@ -1,17 +1,5 @@
 {
-  "network": "sepolia",
-  "chainId": 11155111,
-  "SampleToken": {
-    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "etherscan": "https://sepolia.etherscan.io/address/0x036150039c33b1645080a9c913f96D4c65ccca48#code",
-    "deployedAt": "2026-03-19"
-  },
-  "TokenVesting": {
-    "address": "0x81F71D5D73383750C9d4BCe65C493A55BA887ecB",
-    "etherscan": "https://sepolia.etherscan.io/address/0x81F71D5D73383750C9d4BCe65C493A55BA887ecB#code",
-    "deployedAt": "2026-03-26",
-    "constructorArgs": {
-      "tokenAddress": "0x036150039c33b1645080a9c913f96D4c65ccca48"
-    }
+  "TokenStaking": {
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
   }
 }
