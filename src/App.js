@@ -91,7 +91,7 @@ function App() {
   const [totalRewardForPeriod,  setTotalRewardForPeriod]  = useState('0');
   const [contractBalance,       setContractBalance]       = useState('0');
   const [totalClaimed,          setTotalClaimed]          = useState('0');
-  const [currentBlockTimestamp, setCurrentBlockTimestamp] = useState('0');
+  const [currentBlockTimestamp, setCurrentBlockTimestamp] = useState(0);
 
   // User inputs
   const [stakeAmount,     setStakeAmount]     = useState('');
@@ -240,13 +240,13 @@ function App() {
         setCurrentAPY('0');
       }
 
+      const block = await _contract.provider.getBlock('latest');
+      setCurrentBlockTimestamp(block.timestamp);
+    
     } catch (err) {
       setStatus('Error loading data: ' + err.message);
       setStatusStyle(STATUS_COLORS.error);
     }
-
-    const block = await _contract.provider.getBlock('latest');
-    setCurrentBlockTimestamp(block.timestamp);
   };
 
   const handleRefresh = async () => {
@@ -485,26 +485,6 @@ function App() {
     }
   };
 
-  const handleRecoverLeftoverRewards = async () => {
-    try {
-      setStatus('Recovering leftover rewards...');
-      setStatusStyle(STATUS_COLORS.admin);
-      setIsLoading(true);
-      const tx = await contract.recoverLeftoverRewards();
-      await tx.wait();
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsLoading(false);
-      setTxHash(tx.hash);
-      setStatus('Leftover rewards recovered successfully!');
-      setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readContract, account);
-    } catch (err) {
-      setIsLoading(false);
-      setTxHash('');
-      setStatus(parseError(err));
-      setStatusStyle(STATUS_COLORS.error);
-    }
-  };
 
   const formatTokens = (amount) =>
     Number(amount).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
@@ -921,24 +901,6 @@ function App() {
                       Recover
                     </button>
                   </div>
-
-                    {/* RECOVER LEFTOVER REWARDS */}
-                    <hr style={{ borderColor: 'rgba(15,76,92,0.1)', margin: '24px 0' }} />
-                    <p className="text-sm font-semibold mb-2" style={{ color: '#0ea5e9' }}>Recover Leftover Rewards</p>
-                    <p className="text-xs mb-3" style={{ color: '#64748b' }}>
-                      Only callable after the reward period ends. Recovers any undistributed reward tokens back to the admin wallet.
-                    </p>
-                    <button
-                      onClick={handleRecoverLeftoverRewards}
-                      disabled={isLoading || periodActive()}
-                      className="px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 btn-hover"
-                      style={{
-                        backgroundColor: '#0ea5e9',
-                        opacity: (isLoading || periodActive()) ? 0.6 : 1,
-                        cursor: (isLoading || periodActive()) ? 'not-allowed' : 'pointer',
-                      }}>
-                      Recover Leftover Rewards
-                    </button>
                   </div>
               )}
 
