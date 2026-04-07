@@ -88,7 +88,6 @@ function App() {
   const [rewardPeriod,          setRewardPeriod]          = useState('0');
   const [currentAPY,            setCurrentAPY]            = useState('0');
   const [totalRewardForPeriod,  setTotalRewardForPeriod]  = useState('0');
-  const [contractBalance,       setContractBalance]       = useState('0');
   const [currentBlockTimestamp, setCurrentBlockTimestamp] = useState(0);
 
   // User inputs
@@ -204,11 +203,9 @@ function App() {
       const _periodFinish = await _contract.periodFinish();
       const _rewardPeriod = await _contract.rewardPeriod();
       const _totalReward  = await _contract.totalRewardForPeriod();
-      const _totalClaimed = await _contract.totalClaimed();
 
       const totalSupplyFormatted  = ethers.utils.formatUnits(_totalSupply, 18);
       const totalRewardFormatted  = ethers.utils.formatUnits(_totalReward, 18);
-      const totalClaimedFormatted = ethers.utils.formatUnits(_totalClaimed, 18);
 
       setTotalSupply(totalSupplyFormatted);
       setMyStaked(ethers.utils.formatUnits(_myStaked, 18));
@@ -216,13 +213,6 @@ function App() {
       setPeriodFinish(_periodFinish.toString());
       setRewardPeriod(_rewardPeriod.toString());
       setTotalRewardForPeriod(totalRewardFormatted);
-
-      // Calculate remaining rewards
-      const remainingRewards = Math.max(0,
-        Number(totalRewardFormatted) -
-        Number(totalClaimedFormatted)
-      );
-      setContractBalance(remainingRewards.toString());
 
       // Calculate APY
       if (_totalSupply.gt(0) && _rewardRate.gt(0)) {
@@ -621,13 +611,6 @@ function App() {
                         <span style={{ color: '#22c55e' }}>● Active — {countdown}</span>
                       ) : (
                         <span style={{ color: '#dc2626' }}>● Ended</span>
-                      )}
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: '#64748b' }}>
-                      {periodActive() ? (
-                        <>Contract Balance: <strong style={{ color: '#0ea5e9' }}>{formatTokens(contractBalance)} STK</strong></>
-                      ) : (
-                        <span style={{ color: '#dc2626' }}>Reward period has ended — no rewards are being distributed.</span>
                       )}
                     </p>
                   </div>
