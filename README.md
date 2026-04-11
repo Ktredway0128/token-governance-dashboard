@@ -1,41 +1,45 @@
-# ERC-20 TOKEN VESTING DASHBOARD
+# ERC-20 TOKEN STAKING DASHBOARD
 
-[![Verified on Etherscan](https://img.shields.io/badge/Etherscan-Verified-brightgreen)](https://sepolia.etherscan.io/address/0x81F71D5D73383750C9d4BCe65C493A55BA887ecB#code)
-
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Netlify-blue)](https://erc20-vesting-dashboard.netlify.app/)
+[![Verified on Etherscan](https://img.shields.io/badge/Etherscan-Verified-brightgreen)](https://sepolia.etherscan.io/address/0x0823D964ECC9ed0975761F0D08Ac34F21B936D04#code)
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![Ethers.js](https://img.shields.io/badge/Ethers.js-5.8-purple)
 ![Network](https://img.shields.io/badge/Network-Sepolia-green)
 
-Built by [Kyle Tredway Development](https://kyle-tredway-portfolio.netlify.app/) — professional Solidity smart contract packages for Web3 companies.
+Built by [Tredway Development](https://kyle-tredway-portfolio.netlify.app/) — professional Solidity smart contract packages for Web3 companies.
 
-A production-ready React frontend for interacting with a deployed ERC-20 token vesting contract.
+A production-ready React frontend for interacting with a deployed ERC-20 token staking rewards contract.
 
 > ⚠️ This dashboard is connected to the Sepolia test network for demonstration purposes only.
 > These contracts have not been professionally audited. A full security audit is strongly recommended before any mainnet deployment.
 
-This project demonstrates the full lifecycle of a token vesting management dashboard including:
+This project demonstrates the full lifecycle of a token staking management dashboard including:
 
 - Wallet connection and network validation
-- Real-time vesting schedule data loaded from the blockchain
+- Real-time staking data loaded from the blockchain
+- Live APY calculation based on current total staked
+- Reward period countdown timer
+- Staking and unstaking with MetaMask approval flow
+- Real-time reward accumulation tracking
 - Role-based admin controls
 - Transaction feedback with Etherscan verification
 
-The repository represents the frontend layer of an ERC-20 Token Vesting package, designed to work alongside the ERC-20 Token Launch Contract and ERC-20 Token Vesting Contract.
+The repository represents the frontend layer of an ERC-20 Token Staking package, designed to work alongside the ERC-20 Token Launch Contract as part of the full infrastructure suite.
 
 
 ## PROJECT GOALS
 
-The purpose of this project is to demonstrate how a modern token vesting dashboard should be designed for real-world use.
+The purpose of this project is to demonstrate how a modern token staking dashboard should be designed for real-world use.
 
-The dashboard includes common features required by token vesting interfaces:
+The dashboard includes common features required by token staking interfaces:
 
-- Live vesting schedule data loaded from the blockchain
+- Live staking data loaded from the blockchain
+- Dynamic APY that updates as total staked changes
 - Wallet-based role detection
 - Protected admin functions
-- Beneficiary schedule visibility with real-time progress tracking
+- Live countdown timer showing exact time remaining in the reward period
+- Pool share progress bar showing the connected wallet's percentage of total staked
 - User-friendly transaction status and error handling
 - Etherscan transaction verification
 
@@ -50,67 +54,72 @@ The dashboard connects to MetaMask and automatically detects the connected walle
 A network check ensures the user is on the correct chain before connecting.
 The UI refreshes automatically when the wallet is switched inside MetaMask.
 
-### LIVE VESTING DATA
+### LIVE STAKING DATA
 
 On connection, the dashboard loads the following data directly from the contract:
 
-- Total Locked — tokens currently locked across all active vesting schedules
-- Withdrawable — tokens in the contract not assigned to any schedule (admin only)
-- Active Schedules — number of currently active vesting schedules
+- Total Staked — tokens currently staked across all wallets
+- Your Stake — tokens staked by the connected wallet
+- Your Rewards — rewards earned and available to claim
+- Current APY — annualized yield calculated from the reward rate and total staked
+- Total Period Rewards — total reward pool for the current reward period
 
-### MY VESTING SCHEDULES
+### REWARD PERIOD CARD
 
-Beneficiaries can view all of their vesting schedules including:
+The reward period card shows the current period state:
 
-- Total Amount — total tokens in the schedule
-- Released — tokens already claimed
-- Releasable Now — tokens available to claim at this moment
-- Status — Active, Vesting Complete, or Revoked
-- Start Date, Cliff Date, and End Date
-- Claimed Progress bar showing percentage of tokens claimed
+- Status — Active with live countdown or Ended
+- End Date — when the current reward period closes
 
-### RELEASE TOKENS
+### MY STAKING POSITION
 
-Beneficiaries can claim their vested tokens at any time after the cliff period.
-The Release Tokens button is disabled when no tokens are available.
-After all tokens are claimed the button grays out permanently.
-After full vesting the status changes to **Vesting Complete**.
+After staking, the My Staking Position card appears showing the connected wallet's full status:
+
+- Your Pool Share — visual progress bar showing percentage of total staked
+- Staked — tokens currently staked by this wallet
+- Earned Rewards — rewards accumulated so far
+- Pool Share — percentage of the total staking pool
+
+### STAKE TOKENS
+
+Any whitelisted wallet can stake tokens during an active reward period. Staking requires two MetaMask confirmations — one to approve the token spend and one to stake. The stake button is disabled when the contract is paused or no active reward period exists.
+
+### CLAIM REWARDS
+
+Stakers can claim their accumulated rewards at any time. Rewards accumulate indefinitely and never expire — they can be claimed after the reward period ends. The claim button is disabled when there are no rewards to claim.
+
+### UNSTAKE TOKENS
+
+Stakers can unstake any amount at any time regardless of the reward period status. Unstaking is never blocked — only staking is affected by pause and period state. This protects stakers and ensures they always maintain access to their principal.
+
+### UNSTAKE AND CLAIM ALL
+
+A convenience function that unstakes the full balance and claims all pending rewards in a single transaction.
 
 ### ROLE-BASED ADMIN PANEL
 
-The admin panel is only visible to wallets holding the ADMIN_ROLE.
-Non-admin wallets see only their own vesting schedules.
+The admin panel is only visible to wallets holding the ADMIN_ROLE. Non-admin wallets see only their own staking position.
 
 Admin functions include:
 
 | Function | Description |
 |----------|-------------|
-| Create Vesting Schedule | Create a new schedule for any beneficiary address |
-| Lookup & Revoke | Look up any wallet's schedules and revoke if needed |
-| Withdraw Unlocked Tokens | Withdraw unallocated tokens from the contract |
+| Set Reward Period Duration | Configure the duration in days — only callable when no active period |
+| Start Reward Period | Fund the reward pool and start distributing rewards |
+| Pause / Unpause Staking | Temporarily halt or resume new stakes |
+| Recover Accidentally Sent Tokens | Emergency token recovery — cannot recover staking or reward tokens |
 
-### CREATE VESTING SCHEDULE
+### SET REWARD PERIOD DURATION
 
-Admins can create schedules with the following parameters:
+The admin sets the duration in days before starting a new reward period. This function is only available when no active period is running. The current period duration is displayed below the input.
 
-- Beneficiary address
-- Token amount
-- Start date
-- Cliff period in days
-- Vesting duration in days
+### START REWARD PERIOD
 
-### LOOKUP & REVOKE
+The admin funds the reward pool by entering a total reward amount and confirming two transactions — one to approve the token transfer and one to start the period. The reward rate is calculated automatically as total rewards divided by duration in seconds.
 
-Admins can look up any beneficiary wallet address to view their schedules.
-Each active schedule shows full details and a Revoke button.
-Revoking immediately decrements the Active Schedules counter.
-Unvested tokens are returned to the contract upon revocation.
-The beneficiary retains the right to claim any tokens vested before revocation.
+### PAUSE / UNPAUSE
 
-### WITHDRAW UNLOCKED TOKENS
-
-Admins can withdraw tokens not locked in any active vesting schedule.
-A **Max** button auto-fills the exact withdrawable amount from the contract to avoid rounding issues.
+Staking can be paused at any time to temporarily halt new stakes. Unstaking and reward claiming always remain available — pausing never blocks exits. The button turns green when paused to resume and orange when active to pause.
 
 ### TRANSACTION FEEDBACK
 
@@ -118,14 +127,14 @@ Every action triggers a color-coded status bar with a loading spinner:
 
 | Action | Status Color |
 |--------|-------------|
-| Creating Schedule | Electric Blue |
-| Releasing Tokens | Lime Green |
-| Revoking Schedule | Dark Red |
-| Withdrawing | Lime Green |
+| Staking Tokens | Sky Blue |
+| Unstaking Tokens | Orange |
+| Claiming Rewards | Sky Blue |
+| Admin Actions | Sky Blue |
 | Success | Bright Green |
 | Error | Red |
 
-On success, a clickable Etherscan link appears for immediate transaction verification.
+On success a clickable Etherscan link appears for immediate transaction verification.
 
 ### ERROR HANDLING
 
@@ -133,10 +142,12 @@ User-friendly error messages are displayed for common failure cases:
 
 - Transaction rejected in MetaMask
 - Insufficient funds
-- Not enough tokens in contract
-- Only beneficiary can release
-- No tokens available to release
-- Schedule already revoked
+- Amount must be greater than 0
+- Insufficient staked balance
+- Previous reward period has not finished yet
+- Reward period duration has not been set
+- Cannot change period while current period is active
+- Cannot recover staking or reward tokens
 - General transaction failure
 
 
@@ -160,7 +171,7 @@ src/
     App.css
     index.js
     contracts/
-        TokenVesting.json
+        TokenStaking.json
         sepolia.json
 
 public/
@@ -173,10 +184,6 @@ public/
 
 Contains all wallet connection logic, contract interaction, and UI rendering.
 
-### CONTRACTS
-
-Contains the ABI and deployed contract address pulled in at runtime.
-
 ### ENV
 
 Contains the Alchemy RPC URL used for all read operations.
@@ -187,8 +194,8 @@ Contains the Alchemy RPC URL used for all read operations.
 ### CLONE THE REPOSITORY:
 
 ```bash
-git clone https://github.com/Ktredway0128/erc20-vesting-dashboard
-cd erc20-vesting-dashboard
+git clone https://github.com/Ktredway0128/erc20-staking-dashboard
+cd erc20-staking-dashboard
 ```
 
 ### INSTALL DEPENDENCIES:
@@ -214,7 +221,7 @@ REACT_APP_ALCHEMY_URL=YOUR_SEPOLIA_ALCHEMY_URL
 
 This value allows the dashboard to:
 
-- Read vesting data directly from the blockchain via Alchemy
+- Read staking data directly from the blockchain via Alchemy
 - Bypass MetaMask's RPC for all read operations
 
 
@@ -227,40 +234,53 @@ This value allows the dashboard to:
 3. Click **Connect Wallet**
 4. Approve the connection in MetaMask
 
-### VIEWING YOUR VESTING SCHEDULE (Beneficiary)
+### STAKING TOKENS
 
-1. Connect with the wallet that has an active vesting schedule
-2. Your schedules will load automatically under **My Vesting Schedules**
-3. Hit **↻ Refresh** at any time to see the latest releasable amount
+1. Connect your wallet during an active reward period
+2. Enter the amount of STK tokens to stake
+3. Click **Stake**
+4. Confirm the token approval transaction in MetaMask
+5. Confirm the stake transaction in MetaMask
+6. Your staking position card will appear with your pool share and earned rewards
 
-### RELEASING TOKENS (Beneficiary)
+### CLAIMING REWARDS
 
-1. Connect with your beneficiary wallet
-2. Click **Release Tokens** when tokens are available
+1. Connect with your staking wallet
+2. Click **Claim Rewards** when rewards are available
 3. Confirm the transaction in MetaMask
-4. Your tokens will appear in your wallet after confirmation
+4. Rewards are sent directly to your wallet
 
-### CREATING A VESTING SCHEDULE (Admin Only)
+### UNSTAKING TOKENS
 
-1. Connect with a wallet that holds the ADMIN_ROLE
-2. In the Admin Panel, fill in the beneficiary address, token amount, start date, cliff period, and duration
-3. Click **Create Schedule**
-4. Confirm the transaction in MetaMask
+1. Connect with your staking wallet
+2. Enter an amount to unstake or use **Unstake & Claim All** to exit your full position
+3. Confirm the transaction in MetaMask
+4. Tokens are returned to your wallet immediately
 
-### REVOKING A SCHEDULE (Admin Only)
+### STARTING A REWARD PERIOD (Admin Only)
 
-1. Connect with a wallet that holds the ADMIN_ROLE
-2. In the **Lookup & Revoke** section, enter the beneficiary wallet address
-3. Click **Look Up** to load their schedules
-4. Click **Revoke** on the schedule you want to cancel
-5. Confirm the transaction in MetaMask
+1. Connect with the admin wallet
+2. Set the reward period duration in days using **Set Reward Period Duration**
+3. Enter the total reward amount in **Start Reward Period**
+4. Confirm the token approval transaction in MetaMask
+5. Confirm the start period transaction in MetaMask
+6. The reward period begins immediately
 
-### WITHDRAWING TOKENS (Admin Only)
 
-1. Connect with a wallet that holds the ADMIN_ROLE
-2. Enter an amount or click **Max** to fill the exact withdrawable amount
-3. Click **Withdraw**
-4. Confirm the transaction in MetaMask
+## APY CALCULATION
+
+The dashboard calculates APY dynamically using the following formula:
+
+```
+APY = (rewardRate × 31,536,000 / totalStaked) × 100
+```
+
+APY updates in real time as wallets stake and unstake. When more wallets stake the APY decreases because the same reward pool is shared among more stakers. When wallets unstake the APY increases. This mirrors how real DeFi staking protocols display yield.
+
+
+## DESIGN DECISION — FREE UNSTAKING
+
+Unstaking is never blocked regardless of pause state or reward period status. This is a deliberate design decision that protects stakers — they always maintain access to their principal no matter what is happening with the reward period or contract state. Only new stakes are affected by the pause function.
 
 
 ## PROVIDER ARCHITECTURE
@@ -280,9 +300,9 @@ This separation ensures reads are fast and reliable while writes are always sign
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
 | SampleToken | `0x036150039c33b1645080a9c913f96D4c65ccca48` | [View on Etherscan](https://sepolia.etherscan.io/address/0x036150039c33b1645080a9c913f96D4c65ccca48#code) |
-| TokenVesting | `0x81F71D5D73383750C9d4BCe65C493A55BA887ecB` | [View on Etherscan](https://sepolia.etherscan.io/address/0x81F71D5D73383750C9d4BCe65C493A55BA887ecB#code) |
+| TokenStaking | `0x0823D964ECC9ed0975761F0D08Ac34F21B936D04` | [View on Etherscan](https://sepolia.etherscan.io/address/0x0823D964ECC9ed0975761F0D08Ac34F21B936D04#code) |
 
-Deployed: 2026-03-26
+Deployed: 2026-04-06
 
 
 ## EXAMPLE TOKEN CONFIGURATION
@@ -291,8 +311,9 @@ Example parameters used with this dashboard:
 
 - Token Name: Sample Token
 - Token Symbol: STK
-- Maximum Supply: 1,000,000 tokens
-- Initial Supply: 100,000 tokens
+- Reward Period: 30 days
+- Total Period Rewards: 10,000 STK
+- Same token used for staking and rewards
 
 
 ## SECURITY PRACTICES
@@ -303,37 +324,38 @@ The dashboard enforces security at two levels:
 - Admin panel is hidden from non-admin wallets
 - Network check prevents connection on wrong chain
 - Input validation prevents invalid transactions
-- Beneficiaries can only see and interact with their own schedules
+- Stake button disabled before reward period starts and when paused
 
 **Contract Level**
 - All role checks are enforced by the smart contract
 - The UI is a convenience layer — the contract is the source of truth
 - No transaction can bypass the contract's access control
-- Vested amount is frozen at revocation time on-chain — cannot be manipulated by the UI
+- ReentrancyGuard on all staking, unstaking, and claiming functions
+- SafeERC20 for safe token transfers
 
 
 ## EXAMPLE USE CASES
 
 This dashboard architecture can support many types of projects:
 
-- Employee token compensation plans
-- Investor token lockup agreements
-- Founder and advisor vesting schedules
-- DAO contributor token grants
-- Startup equity token systems
+- Protocol token staking with fixed reward periods
+- Liquidity mining programs
+- Community incentive distributions
+- DAO participation rewards
+- Game economy staking mechanics
+- DeFi yield programs
 
 
 ## FUTURE ENHANCEMENTS
 
-This dashboard serves as the second frontend layer in a larger Web3 infrastructure package.
+This dashboard serves as the fourth frontend layer in a larger Web3 infrastructure package.
 
 Possible upgrades include:
 
-- Airdrop dashboard integration
-- Active beneficiary list for admins
-- Vesting schedule completion notifications
-- Multi-wallet admin management
+- Multiple reward token support
+- Historical rewards chart
 - Mainnet deployment
+- Governance dashboard integration
 
 
 ## AUTHOR
