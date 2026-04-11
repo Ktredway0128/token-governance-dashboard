@@ -1,4 +1,4 @@
-# ERC-20 TOKEN STAKING DASHBOARD
+# TOKEN STAKING DASHBOARD
 
 [![Verified on Etherscan](https://img.shields.io/badge/Etherscan-Verified-brightgreen)](https://sepolia.etherscan.io/address/0x0823D964ECC9ed0975761F0D08Ac34F21B936D04#code)
 
@@ -194,8 +194,8 @@ Contains the Alchemy RPC URL used for all read operations.
 ### CLONE THE REPOSITORY:
 
 ```bash
-git clone https://github.com/Ktredway0128/erc20-staking-dashboard
-cd erc20-staking-dashboard
+git clone https://github.com/Ktredway0128/token-staking-dashboard
+cd token-staking-dashboard
 ```
 
 ### INSTALL DEPENDENCIES:
