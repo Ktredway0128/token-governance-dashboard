@@ -4,10 +4,13 @@ import './App.css';
 import TokenGovernanceABI from './contracts/TokenGovernance.json';
 import SampleTokenABI from './contracts/SampleToken.json';
 import sepoliaDeployment from './contracts/sepolia.json';
+import localhostDeployment from './contracts/localhost.json';
 
-const GOVERNANCE_ADDRESS = sepoliaDeployment.TokenGovernance.address;
-const TIMELOCK_ADDRESS = sepoliaDeployment.TimelockController.address;
-const TOKEN_ADDRESS = sepoliaDeployment.SampleToken.address;
+const DEPLOYMENTS = {
+  '0xaa36a7': sepoliaDeployment,
+  '0x7a69':   localhostDeployment,
+};
+
 const GOVERNANCE_ABI = TokenGovernanceABI.abi;
 const TOKEN_ABI = SampleTokenABI.abi;
 
@@ -36,14 +39,13 @@ const STATE_COLORS = {
 };
 
 const ACTION_TYPES = [
-  { value: 'transfer',        label: 'Transfer Tokens' },
-  { value: 'mint',            label: 'Mint Tokens' },
-  { value: 'updateSetting',   label: 'Update a Setting' },
-  { value: 'custom',          label: 'Custom Action (Advanced)' },
+  { value: 'transfer',      label: 'Transfer Tokens' },
+  { value: 'mint',          label: 'Mint Tokens' },
+  { value: 'updateSetting', label: 'Update a Setting' },
+  { value: 'custom',        label: 'Custom Action (Advanced)' },
 ];
 
 const parseError = (err) => {
-
   if (err.message.includes('user rejected'))             return 'Transaction rejected in MetaMask.';
   if (err.message.includes('insufficient funds'))        return 'Insufficient funds for this transaction.';
   if (err.message.includes('proposer votes below'))      return 'Insufficient tokens to create a proposal.';
@@ -93,7 +95,7 @@ function VoteBar({ forVotes, againstVotes, abstainVotes }) {
   );
 }
 
-function encodeAction(action, tokenAddress, stakingAddress) {
+function encodeAction(action, tokenAddress) {
   try {
     if (action.type === 'transfer') {
       const iface = new ethers.utils.Interface(['function transfer(address,uint256)']);
@@ -142,7 +144,7 @@ function encodeAction(action, tokenAddress, stakingAddress) {
   }
 }
 
-function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddress, stakingAddress }) {
+function ActionForm({ action, index, onUpdate, onRemove, showRemove }) {
   return (
     <div className="rounded-xl p-4 mb-4"
       style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(15,76,92,0.15)' }}>
@@ -158,11 +160,8 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
         )}
       </div>
 
-      {/* ACTION TYPE */}
       <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Action Type</p>
-      <select
-        value={action.type}
-        onChange={(e) => onUpdate('type', e.target.value)}
+      <select value={action.type} onChange={(e) => onUpdate('type', e.target.value)}
         className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-4"
         style={{ borderColor: '#bae6fd', color: '#334155', backgroundColor: '#fff' }}>
         {ACTION_TYPES.map(t => (
@@ -170,7 +169,6 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
         ))}
       </select>
 
-      {/* TRANSFER TOKENS */}
       {action.type === 'transfer' && (
         <>
           <p className="text-xs mb-1" style={{ color: '#64748b' }}>
@@ -178,20 +176,17 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
           </p>
           <p className="text-xs uppercase tracking-wide mb-1 mt-3" style={{ color: '#64748b' }}>Recipient Address</p>
           <input type="text" placeholder="0x... recipient wallet address"
-            value={action.transferTo || ''}
-            onChange={(e) => onUpdate('transferTo', e.target.value)}
+            value={action.transferTo || ''} onChange={(e) => onUpdate('transferTo', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Amount (STK)</p>
           <input type="number" placeholder="e.g. 100"
-            value={action.transferAmount || ''}
-            onChange={(e) => onUpdate('transferAmount', e.target.value)}
+            value={action.transferAmount || ''} onChange={(e) => onUpdate('transferAmount', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
         </>
       )}
 
-      {/* MINT TOKENS */}
       {action.type === 'mint' && (
         <>
           <p className="text-xs mb-1" style={{ color: '#64748b' }}>
@@ -199,20 +194,17 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
           </p>
           <p className="text-xs uppercase tracking-wide mb-1 mt-3" style={{ color: '#64748b' }}>Recipient Address</p>
           <input type="text" placeholder="0x... recipient wallet address"
-            value={action.mintTo || ''}
-            onChange={(e) => onUpdate('mintTo', e.target.value)}
+            value={action.mintTo || ''} onChange={(e) => onUpdate('mintTo', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Amount to Mint (STK)</p>
           <input type="number" placeholder="e.g. 1000"
-            value={action.mintAmount || ''}
-            onChange={(e) => onUpdate('mintAmount', e.target.value)}
+            value={action.mintAmount || ''} onChange={(e) => onUpdate('mintAmount', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
         </>
       )}
 
-      {/* UPDATE A SETTING */}
       {action.type === 'updateSetting' && (
         <>
           <p className="text-xs mb-1" style={{ color: '#64748b' }}>
@@ -220,20 +212,17 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
           </p>
           <p className="text-xs uppercase tracking-wide mb-1 mt-3" style={{ color: '#64748b' }}>Target Contract Address</p>
           <input type="text" placeholder="0x... contract address to update"
-            value={action.settingTarget || ''}
-            onChange={(e) => onUpdate('settingTarget', e.target.value)}
+            value={action.settingTarget || ''} onChange={(e) => onUpdate('settingTarget', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Function Name</p>
           <input type="text" placeholder="e.g. setRewardPeriod or setFee or updateCap"
-            value={action.settingFunction || ''}
-            onChange={(e) => onUpdate('settingFunction', e.target.value)}
+            value={action.settingFunction || ''} onChange={(e) => onUpdate('settingFunction', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>New Value</p>
           <input type="number" placeholder="e.g. 30 for 30 days, or 500 for 0.5%"
-            value={action.settingValue || ''}
-            onChange={(e) => onUpdate('settingValue', e.target.value)}
+            value={action.settingValue || ''} onChange={(e) => onUpdate('settingValue', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs mt-2" style={{ color: '#94a3b8' }}>
@@ -242,7 +231,6 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
         </>
       )}
 
-      {/* CUSTOM ACTION */}
       {action.type === 'custom' && (
         <>
           <p className="text-xs mb-3" style={{ color: '#64748b' }}>
@@ -250,26 +238,22 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
           </p>
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Target Contract Address</p>
           <input type="text" placeholder="0x... contract to call"
-            value={action.target || ''}
-            onChange={(e) => onUpdate('target', e.target.value)}
+            value={action.target || ''} onChange={(e) => onUpdate('target', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>ETH Value (usually 0)</p>
           <input type="text" placeholder="0"
-            value={action.ethValue || '0'}
-            onChange={(e) => onUpdate('ethValue', e.target.value)}
+            value={action.ethValue || '0'} onChange={(e) => onUpdate('ethValue', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Function Signature</p>
           <input type="text" placeholder="e.g. transfer(address,uint256)"
-            value={action.signature || ''}
-            onChange={(e) => onUpdate('signature', e.target.value)}
+            value={action.signature || ''} onChange={(e) => onUpdate('signature', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-3"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Parameters (JSON array)</p>
           <input type="text" placeholder='e.g. ["0xAddress...", "1000000000000000000"]'
-            value={action.calldata || ''}
-            onChange={(e) => onUpdate('calldata', e.target.value)}
+            value={action.calldata || ''} onChange={(e) => onUpdate('calldata', e.target.value)}
             className="w-full border rounded-xl px-4 py-3 text-sm outline-none"
             style={{ borderColor: '#bae6fd', color: '#334155' }} />
           <p className="text-xs mt-2" style={{ color: '#94a3b8' }}>
@@ -282,11 +266,18 @@ function ActionForm({ action, index, onUpdate, onRemove, showRemove, tokenAddres
 }
 
 function App() {
+  // Wallet / connection
   const [governanceContract, setGovernanceContract] = useState(null);
   const [tokenContract,      setTokenContract]      = useState(null);
   const [readGovernance,     setReadGovernance]     = useState(null);
   const [readToken,          setReadToken]          = useState(null);
   const [account,            setAccount]            = useState(null);
+  const [chainId,            setChainId]            = useState(null);
+
+  // Contract addresses (network-aware)
+  const [governanceAddress, setGovernanceAddress] = useState('');
+  const [timelockAddress,   setTimelockAddress]   = useState('');
+  const [tokenAddress,      setTokenAddress]      = useState('');
 
   // Token data
   const [tokenBalance,   setTokenBalance]   = useState('0');
@@ -305,7 +296,7 @@ function App() {
   const [propTitle,       setPropTitle]       = useState('');
   const [propDescription, setPropDescription] = useState('');
   const [propActions,     setPropActions]     = useState([{ type: 'transfer', transferTo: '', transferAmount: '' }]);
-  const [proposalFilter, setProposalFilter] = useState('active');
+  const [proposalFilter,  setProposalFilter]  = useState('active');
 
   // Delegate to address
   const [delegateTarget, setDelegateTarget] = useState('');
@@ -314,87 +305,17 @@ function App() {
   const [voteReasons, setVoteReasons] = useState({});
 
   // Status
-  const [status,      setStatus]      = useState('');
-  const [statusStyle, setStatusStyle] = useState(STATUS_COLORS.default);
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [txHash,      setTxHash]      = useState('');
-  const [showDelegateInput, setShowDelegateInput] = useState(false);
+  const [status,             setStatus]             = useState('');
+  const [statusStyle,        setStatusStyle]        = useState(STATUS_COLORS.default);
+  const [isLoading,          setIsLoading]          = useState(false);
+  const [txHash,             setTxHash]             = useState('');
+  const [showDelegateInput,  setShowDelegateInput]  = useState(false);
 
-  const connectWallet = async () => {
-    try {
-      if (!window.ethereum) {
-        setStatus('MetaMask not found. Please install it.');
-        setStatusStyle(STATUS_COLORS.error);
-        return;
-      }
+  // ─────────────────────────────────────────
+  // loadDashboardData
+  // ─────────────────────────────────────────
 
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (chainId !== '0xaa36a7' && chainId !== '0x7a69') {
-        setStatus('Please switch MetaMask to Sepolia or Localhost 8545.');
-        setStatusStyle(STATUS_COLORS.error);
-        return;
-      }
-
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-      const metaMaskProvider = new ethers.providers.Web3Provider(window.ethereum);
-      const _signer  = metaMaskProvider.getSigner();
-      const _account = await _signer.getAddress();
-
-      const isLocalhost = chainId === '0x7a69';
-      const alchemyProvider = isLocalhost
-        ? new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545')
-        : new ethers.providers.JsonRpcProvider(
-            process.env.REACT_APP_ALCHEMY_URL,
-            { name: 'sepolia', chainId: 11155111 }
-          );
-
-      const _governanceContract = new ethers.Contract(GOVERNANCE_ADDRESS, GOVERNANCE_ABI, _signer);
-      const _tokenContract      = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, _signer);
-      const _readGovernance     = new ethers.Contract(GOVERNANCE_ADDRESS, GOVERNANCE_ABI, alchemyProvider);
-      const _readToken          = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, alchemyProvider);
-
-      setGovernanceContract(_governanceContract);
-      setTokenContract(_tokenContract);
-      setReadGovernance(_readGovernance);
-      setReadToken(_readToken);
-      setAccount(_account);
-
-      await loadDashboardData(_readGovernance, _readToken, _account);
-    } catch (err) {
-      setStatus('Error connecting wallet: ' + err.message);
-      setStatusStyle(STATUS_COLORS.error);
-    }
-  };
-
-  useEffect(() => {
-    if (!window.ethereum) return;
-    const handleAccountChange = async (accounts) => {
-      setStatus('');
-      setTxHash('');
-      setVoteReasons({});
-      if (accounts.length === 0) {
-        setAccount(null);
-        setGovernanceContract(null);
-        setTokenContract(null);
-        setReadGovernance(null);
-        setReadToken(null);
-        setTokenBalance('0');
-        setVotingPower('0');
-        setDelegatee('');
-        setIsDelegated(false);
-        setProposals([]);
-        setShowDelegateInput(false);
-      } else {
-        await connectWallet();
-      }
-    };
-    window.ethereum.on('accountsChanged', handleAccountChange);
-    return () => window.ethereum.removeListener('accountsChanged', handleAccountChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadDashboardData = async (_readGovernance, _readToken, _account) => {
+  const loadDashboardData = async (_readGovernance, _readToken, _account, _tokenAddress) => {
     try {
       const _balance   = await _readToken.balanceOf(_account);
       const _votes     = await _readToken.getVotes(_account);
@@ -420,12 +341,12 @@ function App() {
         const events = await _readGovernance.queryFilter(filter);
 
         const loadedProposals = await Promise.all(events.map(async (event) => {
-          const proposalId   = event.args.proposalId;
-          const state        = await _readGovernance.state(proposalId);
-          const hasVoted     = await _readGovernance.hasVoted(proposalId, _account);
-          const votes        = await _readGovernance.proposalVotes(proposalId);
-          const snapshot     = await _readGovernance.proposalSnapshot(proposalId);
-          const deadline     = await _readGovernance.proposalDeadline(proposalId);
+          const proposalId = event.args.proposalId;
+          const state      = await _readGovernance.state(proposalId);
+          const hasVoted   = await _readGovernance.hasVoted(proposalId, _account);
+          const votes      = await _readGovernance.proposalVotes(proposalId);
+          const snapshot   = await _readGovernance.proposalSnapshot(proposalId);
+          const deadline   = await _readGovernance.proposalDeadline(proposalId);
           return {
             id: proposalId,
             description: event.args.description,
@@ -453,13 +374,124 @@ function App() {
     }
   };
 
+  // ─────────────────────────────────────────
+  // connectWallet
+  // ─────────────────────────────────────────
+
+  const connectWallet = async () => {
+    try {
+      if (!window.ethereum) {
+        setStatus('MetaMask not found. Please install it.');
+        setStatusStyle(STATUS_COLORS.error);
+        return;
+      }
+
+      const _chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+      if (_chainId !== '0xaa36a7' && _chainId !== '0x7a69') {
+        setStatus('Please switch MetaMask to Sepolia or Localhost 8545.');
+        setStatusStyle(STATUS_COLORS.error);
+        return;
+      }
+
+      const deployment = DEPLOYMENTS[_chainId];
+      if (!deployment) {
+        setStatus('No deployment found for this network.');
+        setStatusStyle(STATUS_COLORS.error);
+        return;
+      }
+
+      const _governanceAddress = deployment.TokenGovernance.address;
+      const _timelockAddress   = deployment.TimelockController.address;
+      const _tokenAddress      = deployment.SampleToken.address;
+
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+      const metaMaskProvider = new ethers.providers.Web3Provider(window.ethereum);
+      const _signer          = metaMaskProvider.getSigner();
+      const _account         = await _signer.getAddress();
+
+      const isLocalhost = _chainId === '0x7a69';
+      const rpcProvider = isLocalhost
+        ? new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545')
+        : new ethers.providers.JsonRpcProvider(
+            process.env.REACT_APP_ALCHEMY_URL,
+            { name: 'sepolia', chainId: 11155111 }
+          );
+
+      const _governanceContract = new ethers.Contract(_governanceAddress, GOVERNANCE_ABI, _signer);
+      const _tokenContract      = new ethers.Contract(_tokenAddress, TOKEN_ABI, _signer);
+      const _readGovernance     = new ethers.Contract(_governanceAddress, GOVERNANCE_ABI, rpcProvider);
+      const _readToken          = new ethers.Contract(_tokenAddress, TOKEN_ABI, rpcProvider);
+
+      setGovernanceContract(_governanceContract);
+      setTokenContract(_tokenContract);
+      setReadGovernance(_readGovernance);
+      setReadToken(_readToken);
+      setAccount(_account);
+      setChainId(_chainId);
+      setGovernanceAddress(_governanceAddress);
+      setTimelockAddress(_timelockAddress);
+      setTokenAddress(_tokenAddress);
+
+      await loadDashboardData(_readGovernance, _readToken, _account, _tokenAddress);
+
+    } catch (err) {
+      setStatus('Error connecting wallet: ' + err.message);
+      setStatusStyle(STATUS_COLORS.error);
+    }
+  };
+
+  // ─────────────────────────────────────────
+  // Account change listener
+  // ─────────────────────────────────────────
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+    const handleAccountChange = async (accounts) => {
+      setStatus('');
+      setTxHash('');
+      setVoteReasons({});
+      if (accounts.length === 0) {
+        setAccount(null);
+        setGovernanceContract(null);
+        setTokenContract(null);
+        setReadGovernance(null);
+        setReadToken(null);
+        setChainId(null);
+        setGovernanceAddress('');
+        setTimelockAddress('');
+        setTokenAddress('');
+        setTokenBalance('0');
+        setVotingPower('0');
+        setDelegatee('');
+        setIsDelegated(false);
+        setProposals([]);
+        setShowDelegateInput(false);
+      } else {
+        await connectWallet();
+      }
+    };
+    window.ethereum.on('accountsChanged', handleAccountChange);
+    return () => window.ethereum.removeListener('accountsChanged', handleAccountChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─────────────────────────────────────────
+  // Refresh
+  // ─────────────────────────────────────────
+
   const handleRefresh = async () => {
     if (!readGovernance || !account) return;
     setStatus('Refreshing...');
     setStatusStyle(STATUS_COLORS.default);
-    await loadDashboardData(readGovernance, readToken, account);
+    await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     setStatus('');
   };
+
+  // ─────────────────────────────────────────
+  // Delegation
+  // ─────────────────────────────────────────
 
   const handleSelfDelegate = async () => {
     try {
@@ -473,7 +505,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Voting power activated!');
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     } catch (err) {
       setIsLoading(false);
       setTxHash('');
@@ -499,7 +531,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Voting power delegated successfully!');
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
       setDelegateTarget('');
     } catch (err) {
       setIsLoading(false);
@@ -508,6 +540,10 @@ function App() {
       setStatusStyle(STATUS_COLORS.error);
     }
   };
+
+  // ─────────────────────────────────────────
+  // Propose
+  // ─────────────────────────────────────────
 
   const handlePropose = async () => {
     if (!propTitle) {
@@ -520,7 +556,6 @@ function App() {
       setStatusStyle(STATUS_COLORS.error);
       return;
     }
-
     try {
       setStatus('Creating proposal...');
       setStatusStyle(STATUS_COLORS.propose);
@@ -531,14 +566,13 @@ function App() {
       const calldatas = [];
 
       for (const action of propActions) {
-        const encoded = encodeAction(action, TOKEN_ADDRESS, action.stakingTarget || '');
+        const encoded = encodeAction(action, tokenAddress);
         targets.push(encoded.target);
         values.push(encoded.value);
         calldatas.push(encoded.calldata);
       }
 
       const fullDescription = `${propTitle} — ${propDescription}`;
-
       const tx = await governanceContract.propose(targets, values, calldatas, fullDescription);
       await tx.wait();
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -546,7 +580,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Proposal created successfully!');
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
       setPropTitle('');
       setPropDescription('');
       setPropActions([{ type: 'transfer', transferTo: '', transferAmount: '' }]);
@@ -558,13 +592,17 @@ function App() {
     }
   };
 
+  // ─────────────────────────────────────────
+  // Vote
+  // ─────────────────────────────────────────
+
   const handleVote = async (proposalId, support) => {
     try {
       const voteLabels = { 0: 'Against', 1: 'For', 2: 'Abstain' };
       const voteColors = {
-        0: { backgroundColor: '#dc2626', color: '#fff' }, // Against — red
-        1: { backgroundColor: '#16a34a', color: '#fff' }, // For — green
-        2: { backgroundColor: '#64748b', color: '#fff' }, // Abstain — gray
+        0: { backgroundColor: '#dc2626', color: '#fff' },
+        1: { backgroundColor: '#16a34a', color: '#fff' },
+        2: { backgroundColor: '#64748b', color: '#fff' },
       };
       setStatus(`Casting ${voteLabels[support]} vote...`);
       setStatusStyle(voteColors[support]);
@@ -584,7 +622,7 @@ function App() {
         return updated;
       });
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     } catch (err) {
       setIsLoading(false);
       setTxHash('');
@@ -593,21 +631,19 @@ function App() {
     }
   };
 
-  const handleQueue = async (proposal) => {
+  // ─────────────────────────────────────────
+  // Queue / Execute / Cancel
+  // ─────────────────────────────────────────
 
+  const handleQueue = async (proposal) => {
     try {
       setStatus('Queueing proposal in timelock...');
       setStatusStyle(STATUS_COLORS.queue);
       setIsLoading(true);
       const descriptionHash = ethers.utils.id(proposal.description);
-  
       const values = proposal.ethValues.map(v => ethers.BigNumber.from(v.toString()));
-  
       const tx = await governanceContract.queue(
-        proposal.targets,
-        values,
-        proposal.calldatas,
-        descriptionHash
+        proposal.targets, values, proposal.calldatas, descriptionHash
       );
       await tx.wait();
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -615,7 +651,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Proposal queued in timelock!');
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     } catch (err) {
       setIsLoading(false);
       setTxHash('');
@@ -640,7 +676,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Proposal executed successfully!');
       setStatusStyle(STATUS_COLORS.success);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     } catch (err) {
       setIsLoading(false);
       setTxHash('');
@@ -665,7 +701,7 @@ function App() {
       setTxHash(tx.hash);
       setStatus('Proposal canceled.');
       setStatusStyle(STATUS_COLORS.default);
-      await loadDashboardData(readGovernance, readToken, account);
+      await loadDashboardData(readGovernance, readToken, account, tokenAddress);
     } catch (err) {
       setIsLoading(false);
       setTxHash('');
@@ -673,6 +709,10 @@ function App() {
       setStatusStyle(STATUS_COLORS.error);
     }
   };
+
+  // ─────────────────────────────────────────
+  // Proposal form helpers
+  // ─────────────────────────────────────────
 
   const addAction = () => {
     setPropActions([...propActions, { type: 'transfer', transferTo: '', transferAmount: '' }]);
@@ -690,6 +730,10 @@ function App() {
 
   const formatTokens = (amount) =>
     Number(amount).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+  // ─────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────
 
   return (
     <div>
@@ -741,7 +785,7 @@ function App() {
               style={statusStyle}>
               {isLoading && <Spinner />}
               <span>{status}</span>
-              {txHash && !isLoading && (
+              {txHash && !isLoading && chainId === '0xaa36a7' && (
                 <a href={`https://sepolia.etherscan.io/tx/${txHash}`}
                   target="_blank" rel="noopener noreferrer"
                   style={{ color: '#fff', textDecoration: 'underline', marginLeft: '8px', fontWeight: 'bold' }}>
@@ -763,7 +807,7 @@ function App() {
                 Connect your wallet to participate in governance
               </p>
               <p className="text-sm uppercase tracking-widest" style={{ color: '#64748b' }}>
-                Make sure you're on the Sepolia test network
+                Make sure you're on the Sepolia test network or Localhost 8545
               </p>
             </div>
           ) : (
@@ -771,10 +815,10 @@ function App() {
               {/* STATS CARDS */}
               <div className="grid grid-cols-4 gap-3 mb-8">
                 {[
-                  { label: 'Token Balance',      value: formatTokens(tokenBalance) + ' STK' },
-                  { label: 'Voting Power',        value: formatTokens(votingPower) + ' STK' },
-                  { label: 'Proposal Threshold',  value: formatTokens(threshold) + ' STK' },
-                  { label: 'Quorum Required',     value: quorumFraction + '%' },
+                  { label: 'Token Balance',     value: formatTokens(tokenBalance) + ' STK' },
+                  { label: 'Voting Power',       value: formatTokens(votingPower) + ' STK' },
+                  { label: 'Proposal Threshold', value: formatTokens(threshold) + ' STK' },
+                  { label: 'Quorum Required',    value: quorumFraction + '%' },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl p-4 shadow-sm card-hover"
                     style={{
@@ -809,29 +853,20 @@ function App() {
                     <p className="text-xs font-mono mb-4" style={{ color: '#64748b' }}>
                       Delegated to: {delegatee.slice(0, 6)}...{delegatee.slice(-4)}
                     </p>
-
-                    {/* CHANGE DELEGATION — collapsed toggle */}
-                    <button
-                      onClick={() => setShowDelegateInput(prev => !prev)}
+                    <button onClick={() => setShowDelegateInput(prev => !prev)}
                       className="text-xs font-semibold transition-all hover:opacity-80"
                       style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {showDelegateInput ? '▲ Hide' : '▼ Change delegation address'}
                     </button>
-
                     {showDelegateInput && (
                       <div className="flex gap-3 mt-3">
                         <input type="text" placeholder="0x... wallet address to delegate to"
-                          value={delegateTarget}
-                          onChange={(e) => setDelegateTarget(e.target.value)}
+                          value={delegateTarget} onChange={(e) => setDelegateTarget(e.target.value)}
                           className="flex-1 border rounded-xl px-4 py-2 text-sm outline-none"
                           style={{ borderColor: '#bae6fd', color: '#334155' }} />
                         <button onClick={handleDelegateTo} disabled={isLoading}
                           className="px-4 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                          style={{
-                            backgroundColor: '#5c2d0e',
-                            opacity: isLoading ? 0.6 : 1,
-                            cursor: isLoading ? 'not-allowed' : 'pointer',
-                          }}>
+                          style={{ backgroundColor: '#5c2d0e', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
                           Delegate
                         </button>
                       </div>
@@ -842,41 +877,26 @@ function App() {
                     <p className="text-sm mb-4" style={{ color: '#64748b' }}>
                       ⚠️ Activate your voting power before creating or voting on proposals. This is a one time setup.
                     </p>
-
-                    {/* PRIMARY ACTION */}
                     <button onClick={handleSelfDelegate} disabled={isLoading}
                       className="px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 btn-hover mb-4"
-                      style={{
-                        backgroundColor: '#5c2d0e',
-                        opacity: isLoading ? 0.6 : 1,
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                      }}>
+                      style={{ backgroundColor: '#5c2d0e', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
                       Activate My Voting Power
                     </button>
-
-                    {/* ADVANCED — collapsed toggle */}
                     <div>
-                      <button
-                        onClick={() => setShowDelegateInput(prev => !prev)}
+                      <button onClick={() => setShowDelegateInput(prev => !prev)}
                         className="text-xs font-semibold transition-all hover:opacity-80"
                         style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                         {showDelegateInput ? '▲ Hide' : '▼ Or delegate to another address instead'}
                       </button>
-
                       {showDelegateInput && (
                         <div className="flex gap-3 mt-3">
                           <input type="text" placeholder="0x... wallet address to delegate to"
-                            value={delegateTarget}
-                            onChange={(e) => setDelegateTarget(e.target.value)}
+                            value={delegateTarget} onChange={(e) => setDelegateTarget(e.target.value)}
                             className="flex-1 border rounded-xl px-4 py-2 text-sm outline-none"
                             style={{ borderColor: '#bae6fd', color: '#334155' }} />
                           <button onClick={handleDelegateTo} disabled={isLoading}
                             className="px-4 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                            style={{
-                              backgroundColor: '#5c2d0e',
-                              opacity: isLoading ? 0.6 : 1,
-                              cursor: isLoading ? 'not-allowed' : 'pointer',
-                            }}>
+                            style={{ backgroundColor: '#5c2d0e', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
                             Delegate
                           </button>
                         </div>
@@ -898,10 +918,10 @@ function App() {
                 <h2 className="text-lg font-bold mb-4" style={{ color: '#0f4c5c' }}>Governance Settings</h2>
                 <div className="grid grid-cols-4 gap-4">
                   {[
-                    { label: 'Voting Delay',        value: (Number(votingDelay) / 7200).toFixed(1) + ' days' },
-                    { label: 'Voting Period',        value: (Number(votingPeriod) / 50400).toFixed(1) + ' weeks' },
-                    { label: 'Timelock Delay',       value: '2 days' },
-                    { label: 'Total Proposals',      value: proposals.length },
+                    { label: 'Voting Delay',   value: (Number(votingDelay) / 7200).toFixed(1) + ' days' },
+                    { label: 'Voting Period',  value: (Number(votingPeriod) / 50400).toFixed(1) + ' weeks' },
+                    { label: 'Timelock Delay', value: '2 days' },
+                    { label: 'Total Proposals', value: proposals.length },
                   ].map((setting) => (
                     <div key={setting.label}>
                       <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>{setting.label}</p>
@@ -923,20 +943,15 @@ function App() {
                 <h2 className="text-lg font-bold mb-4" style={{ color: '#0f4c5c' }}>Create Proposal</h2>
 
                 <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Proposal Title</p>
-                <input type="text"
-                  placeholder="Short title for this proposal e.g. Treasury Transfer #1"
-                  value={propTitle}
-                  onChange={(e) => setPropTitle(e.target.value)}
+                <input type="text" placeholder="Short title for this proposal e.g. Treasury Transfer #1"
+                  value={propTitle} onChange={(e) => setPropTitle(e.target.value)}
                   className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-4"
                   style={{ borderColor: '#bae6fd', color: '#334155' }} />
 
                 <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Description</p>
-                <textarea
-                  placeholder="Describe what this proposal does and why token holders should vote for it..."
-                  value={propDescription}
-                  onChange={(e) => setPropDescription(e.target.value)}
-                  rows={3}
-                  className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-6"
+                <textarea placeholder="Describe what this proposal does and why token holders should vote for it..."
+                  value={propDescription} onChange={(e) => setPropDescription(e.target.value)}
+                  rows={3} className="w-full border rounded-xl px-4 py-3 text-sm outline-none mb-6"
                   style={{ borderColor: '#bae6fd', color: '#334155', resize: 'vertical' }} />
 
                 <p className="text-xs uppercase tracking-wide mb-3" style={{ color: '#64748b' }}>
@@ -951,8 +966,6 @@ function App() {
                     onUpdate={(field, value) => updateAction(index, field, value)}
                     onRemove={() => removeAction(index)}
                     showRemove={propActions.length > 1}
-                    tokenAddress={TOKEN_ADDRESS}
-                    stakingAddress={action.stakingTarget || ''}
                   />
                 ))}
 
@@ -967,25 +980,26 @@ function App() {
                 </button>
 
                 <div>
-                <button onClick={handlePropose} disabled={isLoading || !isDelegated || Number(votingPower) < Number(threshold)}
-                  className="px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 btn-hover"
-                  style={{
-                    backgroundColor: '#5c2d0e',
-                    opacity: (isLoading || !isDelegated || Number(votingPower) < Number(threshold)) ? 0.6 : 1,
-                    cursor: (isLoading || !isDelegated || Number(votingPower) < Number(threshold)) ? 'not-allowed' : 'pointer',
-                  }}>
-                  Submit Proposal
-                </button>
-                {!isDelegated && (
-                  <p className="text-xs mt-2" style={{ color: '#f97316' }}>
-                    ⚠️ You must activate voting power before creating a proposal.
-                  </p>
-                )}
-                {isDelegated && Number(votingPower) < Number(threshold) && (
-                  <p className="text-xs mt-2" style={{ color: '#f97316' }}>
-                    ⚠️ You need at least {threshold} STK voting power to create a proposal. You currently have {formatTokens(votingPower)} STK.
-                  </p>
-                )}
+                  <button onClick={handlePropose}
+                    disabled={isLoading || !isDelegated || Number(votingPower) < Number(threshold)}
+                    className="px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 btn-hover"
+                    style={{
+                      backgroundColor: '#5c2d0e',
+                      opacity: (isLoading || !isDelegated || Number(votingPower) < Number(threshold)) ? 0.6 : 1,
+                      cursor: (isLoading || !isDelegated || Number(votingPower) < Number(threshold)) ? 'not-allowed' : 'pointer',
+                    }}>
+                    Submit Proposal
+                  </button>
+                  {!isDelegated && (
+                    <p className="text-xs mt-2" style={{ color: '#f97316' }}>
+                      ⚠️ You must activate voting power before creating a proposal.
+                    </p>
+                  )}
+                  {isDelegated && Number(votingPower) < Number(threshold) && (
+                    <p className="text-xs mt-2" style={{ color: '#f97316' }}>
+                      ⚠️ You need at least {threshold} STK voting power to create a proposal. You currently have {formatTokens(votingPower)} STK.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1003,242 +1017,216 @@ function App() {
                     Proposals {proposals.length > 0 && <span style={{ color: '#64748b', fontSize: '0.9rem' }}>({proposals.length})</span>}
                   </h2>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setProposalFilter('active')}
-                      className="text-xs font-semibold px-3 py-1 rounded-lg transition-all"
-                      style={{
-                        backgroundColor: proposalFilter === 'active' ? '#5c2d0e' : 'rgba(15,76,92,0.1)',
-                        color: proposalFilter === 'active' ? '#fff' : '#0f4c5c',
-                        border: '1px solid rgba(15,76,92,0.2)',
-                        cursor: 'pointer',
-                      }}>
-                      Active
-                    </button>
-                    <button
-                      onClick={() => setProposalFilter('all')}
-                      className="text-xs font-semibold px-3 py-1 rounded-lg transition-all"
-                      style={{
-                        backgroundColor: proposalFilter === 'all' ? '#5c2d0e' : 'rgba(15,76,92,0.1)',
-                        color: proposalFilter === 'all' ? '#fff' : '#0f4c5c',
-                        border: '1px solid rgba(15,76,92,0.2)',
-                        cursor: 'pointer',
-                      }}>
-                      All
-                    </button>
+                    {['active', 'all'].map(f => (
+                      <button key={f} onClick={() => setProposalFilter(f)}
+                        className="text-xs font-semibold px-3 py-1 rounded-lg transition-all"
+                        style={{
+                          backgroundColor: proposalFilter === f ? '#5c2d0e' : 'rgba(15,76,92,0.1)',
+                          color: proposalFilter === f ? '#fff' : '#0f4c5c',
+                          border: '1px solid rgba(15,76,92,0.2)',
+                          cursor: 'pointer',
+                          textTransform: 'capitalize',
+                        }}>
+                        {f}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {proposals.length === 0 ? (
-                  <p className="text-sm" style={{ color: '#64748b' }}>
-                    No proposals yet. Create the first one above.
-                  </p>
+                  <p className="text-sm" style={{ color: '#64748b' }}>No proposals yet. Create the first one above.</p>
                 ) : (
                   <div>
                     {proposals
                       .filter(p => proposalFilter === 'all' || ['Pending', 'Active', 'Succeeded', 'Queued'].includes(p.stateLabel))
                       .map((proposal) => {
-                      const totalVotes = Number(proposal.forVotes) + Number(proposal.againstVotes) + Number(proposal.abstainVotes);
-                      const quorumMet = totalVotes >= Number(quorumFraction) / 100 * Number(tokenBalance);
+                        const totalVotes = Number(proposal.forVotes) + Number(proposal.againstVotes) + Number(proposal.abstainVotes);
+                        const quorumMet = totalVotes >= Number(quorumFraction) / 100 * Number(tokenBalance);
 
-                      return (
-                        <div key={proposal.id.toString()} className="rounded-xl p-5 mb-4"
-                          style={{
-                            backgroundColor: 'rgba(255,255,255,0.6)',
-                            border: '1px solid rgba(15,76,92,0.15)',
-                          }}>
+                        return (
+                          <div key={proposal.id.toString()} className="rounded-xl p-5 mb-4"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(15,76,92,0.15)' }}>
 
-                          {/* HEADER */}
-                          <div className="flex justify-between items-start mb-2">
-                            <p className="text-sm font-bold" style={{ color: '#0f4c5c' }}>
-                              {proposal.description}
+                            <div className="flex justify-between items-start mb-2">
+                              <p className="text-sm font-bold" style={{ color: '#0f4c5c' }}>{proposal.description}</p>
+                              <span className="text-xs font-bold px-3 py-1 rounded-full ml-4"
+                                style={{
+                                  backgroundColor: STATE_COLORS[proposal.stateLabel] + '20',
+                                  color: STATE_COLORS[proposal.stateLabel],
+                                  border: `1px solid ${STATE_COLORS[proposal.stateLabel]}40`,
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                {proposal.stateLabel}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-mono mb-1" style={{ color: '#94a3b8' }}>
+                              ID: {proposal.id.toString().slice(0, 10)}...
                             </p>
-                            <span className="text-xs font-bold px-3 py-1 rounded-full ml-4"
-                              style={{
-                                backgroundColor: STATE_COLORS[proposal.stateLabel] + '20',
-                                color: STATE_COLORS[proposal.stateLabel],
-                                border: `1px solid ${STATE_COLORS[proposal.stateLabel]}40`,
-                                whiteSpace: 'nowrap',
-                              }}>
-                              {proposal.stateLabel}
-                            </span>
-                          </div>
+                            <p className="text-xs mb-3" style={{ color: '#94a3b8' }}>
+                              Snapshot block: {proposal.snapshot} — Voting ends block: {proposal.deadline}
+                            </p>
 
-                          {/* ID + SNAPSHOT */}
-                          <p className="text-xs font-mono mb-1" style={{ color: '#94a3b8' }}>
-                            ID: {proposal.id.toString().slice(0, 10)}...
-                          </p>
-                          <p className="text-xs mb-3" style={{ color: '#94a3b8' }}>
-                            Snapshot block: {proposal.snapshot} — Voting ends block: {proposal.deadline}
-                          </p>
-
-                          {/* ACTION SUMMARY */}
-                          {proposal.targets && proposal.targets.length > 0 && (
-                            <div className="mb-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(15,76,92,0.05)', border: '1px solid rgba(15,76,92,0.1)' }}>
-                              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: '#64748b' }}>
-                                Actions ({proposal.targets.length})
-                              </p>
-                              {proposal.targets.map((target, i) => (
-                                <div key={i} className="flex items-center gap-2 mb-1">
-                                  <span className="text-xs font-bold px-2 py-0.5 rounded"
-                                    style={{ backgroundColor: '#5c2d0e20', color: '#5c2d0e' }}>
-                                    {i + 1}
-                                  </span>
-                                  <p className="text-xs font-mono" style={{ color: '#64748b' }}>
-                                    Contract: {target.slice(0, 6)}...{target.slice(-4)}
-                                  </p>
-                                  {target.toLowerCase() === TOKEN_ADDRESS.toLowerCase() && (
-                                    <span className="text-xs px-2 py-0.5 rounded"
-                                      style={{ backgroundColor: '#1a4a8a20', color: '#1a4a8a' }}>
-                                      Token Contract
+                            {proposal.targets && proposal.targets.length > 0 && (
+                              <div className="mb-3 p-3 rounded-lg"
+                                style={{ backgroundColor: 'rgba(15,76,92,0.05)', border: '1px solid rgba(15,76,92,0.1)' }}>
+                                <p className="text-xs uppercase tracking-wide mb-2" style={{ color: '#64748b' }}>
+                                  Actions ({proposal.targets.length})
+                                </p>
+                                {proposal.targets.map((target, i) => (
+                                  <div key={i} className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold px-2 py-0.5 rounded"
+                                      style={{ backgroundColor: '#5c2d0e20', color: '#5c2d0e' }}>
+                                      {i + 1}
                                     </span>
-                                  )}
-                                  {target.toLowerCase() === TIMELOCK_ADDRESS.toLowerCase() && (
-                                    <span className="text-xs px-2 py-0.5 rounded"
-                                      style={{ backgroundColor: '#8b5cf620', color: '#8b5cf6' }}>
-                                      Timelock
-                                    </span>
-                                  )}
-                                  {target.toLowerCase() === GOVERNANCE_ADDRESS.toLowerCase() && (
-                                    <span className="text-xs px-2 py-0.5 rounded"
-                                      style={{ backgroundColor: '#f9731620', color: '#f97316' }}>
-                                      Governance
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                    <p className="text-xs font-mono" style={{ color: '#64748b' }}>
+                                      Contract: {target.slice(0, 6)}...{target.slice(-4)}
+                                    </p>
+                                    {target.toLowerCase() === tokenAddress.toLowerCase() && (
+                                      <span className="text-xs px-2 py-0.5 rounded"
+                                        style={{ backgroundColor: '#1a4a8a20', color: '#1a4a8a' }}>
+                                        Token Contract
+                                      </span>
+                                    )}
+                                    {target.toLowerCase() === timelockAddress.toLowerCase() && (
+                                      <span className="text-xs px-2 py-0.5 rounded"
+                                        style={{ backgroundColor: '#8b5cf620', color: '#8b5cf6' }}>
+                                        Timelock
+                                      </span>
+                                    )}
+                                    {target.toLowerCase() === governanceAddress.toLowerCase() && (
+                                      <span className="text-xs px-2 py-0.5 rounded"
+                                        style={{ backgroundColor: '#f9731620', color: '#f97316' }}>
+                                        Governance
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                          {/* QUORUM STATUS */}
-                          <p className="text-xs mb-3 font-semibold"
-                            style={{ color: quorumMet ? '#16a34a' : '#f97316' }}>
-                            {quorumMet ? '✅ Quorum reached' : `⚠️ Quorum not yet reached — need ${quorumFraction}% participation`}
-                          </p>
+                            <p className="text-xs mb-3 font-semibold"
+                              style={{ color: quorumMet ? '#16a34a' : '#f97316' }}>
+                              {quorumMet ? '✅ Quorum reached' : `⚠️ Quorum not yet reached — need ${quorumFraction}% participation`}
+                            </p>
 
-                          {/* VOTE BAR */}
-                          <VoteBar
-                            forVotes={proposal.forVotes}
-                            againstVotes={proposal.againstVotes}
-                            abstainVotes={proposal.abstainVotes}
-                          />
+                            <VoteBar
+                              forVotes={proposal.forVotes}
+                              againstVotes={proposal.againstVotes}
+                              abstainVotes={proposal.abstainVotes}
+                            />
 
-                          {/* VOTE COUNTS */}
-                          <div className="grid grid-cols-3 gap-3 mb-4">
-                            <div className="rounded-lg p-2 text-center"
-                              style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#16a34a' }}>For</p>
-                              <p className="text-sm font-bold" style={{ color: '#16a34a' }}>{formatTokens(proposal.forVotes)}</p>
-                            </div>
-                            <div className="rounded-lg p-2 text-center"
-                              style={{ backgroundColor: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)' }}>
-                              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#dc2626' }}>Against</p>
-                              <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{formatTokens(proposal.againstVotes)}</p>
-                            </div>
-                            <div className="rounded-lg p-2 text-center"
-                              style={{ backgroundColor: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.2)' }}>
-                              <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Abstain</p>
-                              <p className="text-sm font-bold" style={{ color: '#64748b' }}>{formatTokens(proposal.abstainVotes)}</p>
-                            </div>
-                          </div>
-
-                          {/* VOTING BUTTONS */}
-                          {proposal.stateLabel === 'Active' && !proposal.hasVoted && (
-                            <div>
-                              <p className="text-xs uppercase tracking-wide mb-2" style={{ color: '#64748b' }}>Cast Your Vote</p>
-                              <input type="text"
-                                placeholder="Optional: add a reason for your vote..."
-                                value={voteReasons[proposal.id.toString()] || ''}
-                                onChange={(e) => setVoteReasons(prev => ({
-                                  ...prev,
-                                  [proposal.id.toString()]: e.target.value
-                                }))}
-                                className="w-full border rounded-xl px-4 py-2 text-sm outline-none mb-3"
-                                style={{ borderColor: '#bae6fd', color: '#334155' }} />
-                              <div className="flex gap-3">
-                                <button onClick={() => handleVote(proposal.id, 1)} disabled={isLoading}
-                                  className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                                  style={{ backgroundColor: '#16a34a', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                                  ✓ For
-                                </button>
-                                <button onClick={() => handleVote(proposal.id, 0)} disabled={isLoading}
-                                  className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                                  style={{ backgroundColor: '#dc2626', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                                  ✗ Against
-                                </button>
-                                <button onClick={() => handleVote(proposal.id, 2)} disabled={isLoading}
-                                  className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                                  style={{ backgroundColor: '#64748b', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                                  — Abstain
-                                </button>
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                              <div className="rounded-lg p-2 text-center"
+                                style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#16a34a' }}>For</p>
+                                <p className="text-sm font-bold" style={{ color: '#16a34a' }}>{formatTokens(proposal.forVotes)}</p>
+                              </div>
+                              <div className="rounded-lg p-2 text-center"
+                                style={{ backgroundColor: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#dc2626' }}>Against</p>
+                                <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{formatTokens(proposal.againstVotes)}</p>
+                              </div>
+                              <div className="rounded-lg p-2 text-center"
+                                style={{ backgroundColor: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.2)' }}>
+                                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Abstain</p>
+                                <p className="text-sm font-bold" style={{ color: '#64748b' }}>{formatTokens(proposal.abstainVotes)}</p>
                               </div>
                             </div>
-                          )}
 
-                          {proposal.stateLabel === 'Active' && proposal.hasVoted && (
-                            <p className="text-xs font-semibold" style={{ color: '#22c55e' }}>
-                              ✅ You have already voted on this proposal
-                            </p>
-                          )}
+                            {proposal.stateLabel === 'Active' && !proposal.hasVoted && (
+                              <div>
+                                <p className="text-xs uppercase tracking-wide mb-2" style={{ color: '#64748b' }}>Cast Your Vote</p>
+                                <input type="text" placeholder="Optional: add a reason for your vote..."
+                                  value={voteReasons[proposal.id.toString()] || ''}
+                                  onChange={(e) => setVoteReasons(prev => ({
+                                    ...prev,
+                                    [proposal.id.toString()]: e.target.value
+                                  }))}
+                                  className="w-full border rounded-xl px-4 py-2 text-sm outline-none mb-3"
+                                  style={{ borderColor: '#bae6fd', color: '#334155' }} />
+                                <div className="flex gap-3">
+                                  <button onClick={() => handleVote(proposal.id, 1)} disabled={isLoading}
+                                    className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
+                                    style={{ backgroundColor: '#16a34a', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                    ✓ For
+                                  </button>
+                                  <button onClick={() => handleVote(proposal.id, 0)} disabled={isLoading}
+                                    className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
+                                    style={{ backgroundColor: '#dc2626', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                    ✗ Against
+                                  </button>
+                                  <button onClick={() => handleVote(proposal.id, 2)} disabled={isLoading}
+                                    className="flex-1 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
+                                    style={{ backgroundColor: '#64748b', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                    — Abstain
+                                  </button>
+                                </div>
+                              </div>
+                            )}
 
-                          {/* CANCEL BUTTON — only for Pending proposals */}
-                          {proposal.stateLabel === 'Pending' && (
-                            <button onClick={() => handleCancel(proposal)} disabled={isLoading}
-                              className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover mt-2"
-                              style={{ backgroundColor: '#dc2626', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                              Cancel Proposal
-                            </button>
-                          )}
-
-                          {/* QUEUE BUTTON */}
-                          {proposal.stateLabel === 'Succeeded' && (
-                            <button onClick={() => handleQueue(proposal)} disabled={isLoading}
-                              className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover mt-2"
-                              style={{ backgroundColor: '#1a4a8a', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                              Queue in Timelock
-                            </button>
-                          )}
-
-                          {/* EXECUTE BUTTON */}
-                          {proposal.stateLabel === 'Queued' && (
-                            <div className="mt-2">
-                              <p className="text-xs mb-2" style={{ color: '#64748b' }}>
-                              This proposal has passed. After the 2 day timelock period you may execute to finalize on-chain.
+                            {proposal.stateLabel === 'Active' && proposal.hasVoted && (
+                              <p className="text-xs font-semibold" style={{ color: '#22c55e' }}>
+                                ✅ You have already voted on this proposal
                               </p>
-                              <button onClick={() => handleExecute(proposal)} disabled={isLoading}
-                                className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
-                                style={{ backgroundColor: '#0f2d5e', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
-                                Execute Proposal
+                            )}
+
+                            {proposal.stateLabel === 'Pending' && (
+                              <button onClick={() => handleCancel(proposal)} disabled={isLoading}
+                                className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover mt-2"
+                                style={{ backgroundColor: '#dc2626', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                Cancel Proposal
                               </button>
-                            </div>
-                          )}
+                            )}
 
-                          {proposal.stateLabel === 'Executed' && (
-                            <p className="text-xs font-semibold mt-2" style={{ color: '#0f4c5c' }}>
-                              ✅ This proposal has been executed on-chain
-                            </p>
-                          )}
+                            {proposal.stateLabel === 'Succeeded' && (
+                              <button onClick={() => handleQueue(proposal)} disabled={isLoading}
+                                className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover mt-2"
+                                style={{ backgroundColor: '#1a4a8a', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                Queue in Timelock
+                              </button>
+                            )}
 
-                          {proposal.stateLabel === 'Defeated' && (
-                            <p className="text-xs font-semibold mt-2" style={{ color: '#dc2626' }}>
-                              ✗ This proposal was defeated — quorum not reached or against votes won
-                            </p>
-                          )}
+                            {proposal.stateLabel === 'Queued' && (
+                              <div className="mt-2">
+                                <p className="text-xs mb-2" style={{ color: '#64748b' }}>
+                                  This proposal has passed. After the 2 day timelock period you may execute to finalize on-chain.
+                                </p>
+                                <button onClick={() => handleExecute(proposal)} disabled={isLoading}
+                                  className="w-full py-2 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 btn-hover"
+                                  style={{ backgroundColor: '#0f2d5e', opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                                  Execute Proposal
+                                </button>
+                              </div>
+                            )}
 
-                          {proposal.stateLabel === 'Canceled' && (
-                            <p className="text-xs font-semibold mt-2" style={{ color: '#94a3b8' }}>
-                              ✗ This proposal was canceled
-                            </p>
-                          )}
+                            {proposal.stateLabel === 'Executed' && (
+                              <p className="text-xs font-semibold mt-2" style={{ color: '#0f4c5c' }}>
+                                ✅ This proposal has been executed on-chain
+                              </p>
+                            )}
 
-                          {proposal.stateLabel === 'Expired' && (
-                            <p className="text-xs font-semibold mt-2" style={{ color: '#94a3b8' }}>
-                              ✗ This proposal expired before execution
-                            </p>
-                          )}
+                            {proposal.stateLabel === 'Defeated' && (
+                              <p className="text-xs font-semibold mt-2" style={{ color: '#dc2626' }}>
+                                ✗ This proposal was defeated — quorum not reached or against votes won
+                              </p>
+                            )}
 
-                        </div>
-                      );
-                    })}
+                            {proposal.stateLabel === 'Canceled' && (
+                              <p className="text-xs font-semibold mt-2" style={{ color: '#94a3b8' }}>
+                                ✗ This proposal was canceled
+                              </p>
+                            )}
+
+                            {proposal.stateLabel === 'Expired' && (
+                              <p className="text-xs font-semibold mt-2" style={{ color: '#94a3b8' }}>
+                                ✗ This proposal expired before execution
+                              </p>
+                            )}
+
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
